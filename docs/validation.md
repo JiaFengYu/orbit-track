@@ -30,3 +30,11 @@ The warm HTTP result meets the proposed 100 ms target for this workload. Compone
 ## Unverified boundary
 
 Live CelesTrak requests were blocked in the implementation environment. Provider integration was tested with a local HTTP server, not the current production provider. Numerical agreement is with the chosen SGP4 model, not independent satellite telemetry. Ground-track Earth orientation is approximate and documented in `numerics.md`. GitHub CI is configured but has not run remotely.
+
+## Visual refresh — 2026-10-27
+
+Updated the explorer to match the personal website: white navigation, a purple night-sky background, indigo controls, and translucent cards. Replaced schematic outlines with an offline Natural Earth basemap, with correct spherical clipping at the date line. Added sampled playback and clearer time/coordinate readouts.
+
+Revalidation: all 10 Rust integration tests passed (including the existing 668 reference states/failures); formatting and Clippy passed. Browser checks verified keyboard slider operation, play/pause and stopping at the final sample, GeoJSON download contents, stale warnings, invalid input, satellite switching, 320/390/768px layouts, reduced-motion behavior, and successful loading of local map/CSS assets. Desktop and mobile screenshots were inspected. No JavaScript exceptions or failed resource requests occurred.
+
+The original performance measurements above remain the dated MVP measurements; the visual refresh does not change propagation or coordinate conversion.

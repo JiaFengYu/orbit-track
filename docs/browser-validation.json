@@ -1,1 +1,1 @@
-{"passed":true,"checks":["ISS epoch demo","181 positions","antimeridian split","slider","stale warning","invalid time","satellite selection","390px viewport","no JS errors"]}
+{"passed":true,"checks":["ISS epoch demo","181 positions","antimeridian split","offline map and stylesheet","white website navigation","keyboard slider","play/pause and end stop","GeoJSON download","stale warning","invalid time","epoch shortcut","satellite selection","320/390/768px layouts","reduced motion","no JS errors or failed resources"]}

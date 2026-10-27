@@ -109,6 +109,24 @@ pub fn router(catalog: Catalog) -> Router {
             }),
         )
         .route(
+            "/styles.css",
+            get(|| async {
+                (
+                    [(axum::http::header::CONTENT_TYPE, "text/css; charset=utf-8")],
+                    include_str!("../web/styles.css"),
+                )
+            }),
+        )
+        .route(
+            "/basemap.svg",
+            get(|| async {
+                (
+                    [(axum::http::header::CONTENT_TYPE, "image/svg+xml")],
+                    include_str!("../web/basemap.svg"),
+                )
+            }),
+        )
+        .route(
             "/healthz",
             get(|| async { Json(json!({"service":"orbit-track","status":"ok"})) }),
         )

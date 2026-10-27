@@ -1,13 +1,111 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Satellite Orbit Explorer</title>
-<style>:root{color-scheme:dark;font-family:system-ui;background:#08121f;color:#e6edf7}*{box-sizing:border-box}body{margin:0}main{max-width:1250px;margin:auto;padding:2.5rem 1.3rem}small,.muted{color:#a0b3ca}h1{font-size:clamp(2rem,5vw,3.6rem);letter-spacing:-.035em;margin:.5rem 0}p{line-height:1.6}form{display:flex;gap:1rem;flex-wrap:wrap;margin:2rem 0}label{display:flex;flex-direction:column;gap:.5rem;font-size:.85rem;flex:1;min-width:160px}input,select,button{font:inherit;border:1px solid #304660;background:#13263a;color:inherit;padding:.8rem;border-radius:8px}button{background:#8fe3d1;color:#08251f;font-weight:650;cursor:pointer;align-self:end}button:disabled{opacity:.6}svg{width:100%;height:auto;display:block;background:#10253b;border:1px solid #304660;border-radius:14px}.grid{stroke:#54718b;stroke-width:.45;opacity:.4}.land{fill:#263f4d;stroke:#57736f;stroke-width:.6}#track{fill:none;stroke:#81e6d2;stroke-width:2.5;stroke-linecap:round}#marker{fill:#fff;stroke:#123d46;stroke-width:2}.readouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;margin:1rem 0}.readouts>div,.context{padding:1rem;border:1px solid #293e54;border-radius:10px;background:#0d1c2d}.value{font-size:1.15rem;margin:.4rem 0;overflow-wrap:anywhere}#slider{width:100%;padding:0;accent-color:#8fe3d1}#warnings{color:#f1cf8e;font-size:.9rem}#error{color:#ffb6bd}code{overflow-wrap:anywhere;font-size:.8rem}a{color:#8fe3d1}.map-note{font-size:.8rem}#status{min-height:1.5rem}footer{margin:2rem 0;color:#a0b3ca;font-size:.85rem}@media(max-width:500px){main{padding:1.5rem 1rem}form{gap:.8rem}label{min-width:100%}button{width:100%}}</style></head><body><main>
-<header><small>ORBIT TRACK / SGP4 + RUST</small><h1>Satellite Orbit Explorer</h1><p class="muted">Follow a predicted orbit. Inspect the time, source elements, and model behind every point.</p></header>
-<form id="controls"><label>Satellite<select id="satellite" required></select></label><label>Start time (UTC or “epoch”)<input id="start" value="epoch" required aria-describedby="time-help"></label><label>Duration (minutes)<input id="duration" type="number" min="1" max="360" step="1" value="90" required></label><button id="run" type="submit">Predict ground track</button></form>
-<p id="time-help" class="muted">Use epoch for a reproducible demo, or a UTC timestamp such as 2020-07-12T21:16:01Z. Predictions are limited to ±14 days from the element epoch.</p>
-<p id="status" role="status">Loading the local catalog…</p><p id="error" role="alert"></p>
-<svg id="map" viewBox="0 0 1000 500" role="img" aria-label="Equirectangular world map with predicted satellite ground track"><title>Predicted satellite ground track</title><g id="grid"></g><g id="land"></g><g id="track"></g><circle id="marker" r="5" cx="500" cy="250" visibility="hidden"/></svg>
-<p class="muted map-note">Equirectangular projection · schematic continent outlines for orientation · no external map service. Track lines split at the date line.</p>
-<label for="slider">Prediction time — move to a sampled position<input id="slider" type="range" min="0" max="180" value="0" disabled></label>
-<div class="readouts"><div><small>UTC TIME</small><p class="value" id="time">—</p></div><div><small>LATITUDE / LONGITUDE</small><p class="value" id="coordinates">—</p></div><div><small>ALTITUDE (WGS84)</small><p class="value" id="altitude">—</p></div><div><small>DISTANCE FROM ELEMENT EPOCH</small><p class="value" id="age">—</p></div></div>
-<div class="context"><small>DATA & MODEL</small><p id="provenance"></p><p id="model"></p><code id="hash"></code><div id="warnings"></div><p><a id="download" download="ground-track.geojson">Download GeoJSON</a></p></div>
-<footer>Predictions from published mean orbital elements, not live telemetry. GMST Earth rotation approximates UT1 with UTC and omits polar motion. Intended for exploration, not navigation.</footer>
-</main><script src="/app.js" defer></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0f0c29">
+  <meta name="description" content="Explore predicted satellite orbits with an interactive ground track, local orbital data, and a little curiosity about space.">
+  <title>Satellite Orbit Explorer · Jayden Yu</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to explorer</a>
+  <div class="night-sky" aria-hidden="true"><div class="stars stars-near"></div><div class="stars stars-far"></div></div>
+  <nav class="site-nav" aria-label="Main navigation">
+    <div class="nav-inner">
+      <a class="brand" href="https://jiafengyu.github.io/">Jayden Yu</a>
+      <div class="nav-links">
+        <a href="#main-content" aria-current="page">Explorer</a>
+        <a class="nav-about" href="#about">About the project</a>
+        <a href="https://jiafengyu.github.io/projects/">My work <span aria-hidden="true">↗</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Space, systems & a little curiosity</p>
+        <h1>Satellite Orbit <span>Explorer.</span></h1>
+        <p class="hero-description">A different perspective on our planet. Follow a predicted orbit and explore the path, one position at a time.</p>
+      </div>
+      <div class="orbit-sketch" aria-hidden="true">
+        <svg viewBox="0 0 180 150" fill="none"><circle cx="90" cy="75" r="32" fill="url(#planet-fill)" stroke="#a5b4fc" stroke-opacity=".5"/><ellipse cx="90" cy="75" rx="79" ry="28" transform="rotate(-32 90 75)" stroke="#c7d2fe" stroke-opacity=".65"/><ellipse cx="90" cy="75" rx="67" ry="48" transform="rotate(38 90 75)" stroke="#a5b4fc" stroke-opacity=".22" stroke-dasharray="3 5"/><path d="M60 66c20 11 38 10 58-2M65 93c15-4 34-4 51-1M86 44c-15 23-13 45 2 62" stroke="#c7d2fe" stroke-opacity=".3"/><circle cx="149" cy="34" r="5" fill="#e0e7ff"/><circle cx="149" cy="34" r="10" stroke="#a5b4fc" stroke-opacity=".35"/><defs><linearGradient id="planet-fill" x1="60" y1="43" x2="120" y2="107"><stop stop-color="#818cf8" stop-opacity=".32"/><stop offset="1" stop-color="#312e81" stop-opacity=".1"/></linearGradient></defs></svg>
+      </div>
+    </header>
+
+    <section class="surface setup" aria-labelledby="setup-title">
+      <div class="section-topline"><h2 id="setup-title">Choose your orbit</h2><span class="quiet-label">Local orbital elements <span class="status-dot" aria-hidden="true"></span></span></div>
+      <form id="controls">
+        <label for="satellite">Satellite<select id="satellite" required aria-label="Satellite"></select></label>
+        <label for="start">Start time <span class="field-unit">UTC</span><input id="start" value="epoch" required spellcheck="false" autocomplete="off" aria-describedby="time-help"></label>
+        <label for="duration">Duration <span class="field-unit">minutes</span><input id="duration" type="number" min="1" max="360" step="1" value="90" required></label>
+        <button id="run" class="action-primary" type="submit"><span>Trace orbit</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button>
+      </form>
+      <p id="time-help" class="field-help">Use <button id="use-epoch" type="button" class="text-button">the element epoch</button> for a reproducible start, or enter a UTC time. Up to 6 hours, within 14 days of the element epoch.</p>
+      <p id="error" role="alert" hidden></p>
+    </section>
+
+    <section class="surface explorer" aria-labelledby="track-title">
+      <div class="map-header">
+        <div><p class="eyebrow">A view from above</p><h2 id="track-title">Ground track <span id="map-satellite" class="satellite-badge">Loading…</span></h2></div>
+        <div class="map-legend" aria-label="Map legend"><span><i class="legend-line"></i>Predicted path</span><span><i class="legend-point"></i>Selected position</span></div>
+      </div>
+      <div class="map-stage">
+        <svg id="map" viewBox="0 0 1000 500" role="img" aria-label="World map with a predicted satellite ground track">
+          <title id="map-title">Predicted satellite ground track</title>
+          <desc>The slider below selects a predicted position. Latitude, longitude and altitude appear beneath the map.</desc>
+          <defs>
+            <linearGradient id="ocean" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#15172f"/><stop offset="1" stop-color="#202046"/></linearGradient>
+            <radialGradient id="map-light"><stop stop-color="#6366f1" stop-opacity=".12"/><stop offset="1" stop-color="#6366f1" stop-opacity="0"/></radialGradient>
+            <filter id="path-glow" x="-20%" y="-40%" width="140%" height="180%"><feGaussianBlur stdDeviation="3"/></filter>
+            <filter id="point-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="5"/></filter>
+          </defs>
+          <rect width="1000" height="500" fill="url(#ocean)"/>
+          <rect width="1000" height="500" fill="url(#map-light)"/>
+          <g id="grid" aria-hidden="true"></g>
+          <image id="basemap" href="/basemap.svg" width="1000" height="500" aria-hidden="true"/>
+          <g id="map-labels" aria-hidden="true"></g>
+          <g id="track-glow" aria-hidden="true"></g>
+          <g id="track"></g>
+          <circle id="marker-glow" r="13" fill="#a5b4fc" opacity=".6" filter="url(#point-glow)" visibility="hidden"/>
+          <circle id="marker-ring" r="10" fill="none" stroke="#c7d2fe" stroke-width="1" opacity=".55" visibility="hidden"/>
+          <circle id="marker" r="4.5" fill="#fff" stroke="#a5b4fc" stroke-width="2" visibility="hidden"/>
+        </svg>
+        <div class="map-caption"><span>Equirectangular projection</span><span>Map: <a href="https://www.naturalearthdata.com/">Natural Earth</a></span></div>
+      </div>
+      <div class="timeline">
+        <div class="timeline-heading"><label for="slider">Explore the timeline</label><span id="sample-position" class="quiet-label">Waiting for a track</span></div>
+        <div class="timeline-controls">
+          <button id="play" class="play-button" type="button" disabled aria-pressed="false" aria-label="Play through predicted positions"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="play-icon" d="m7 4 9 6-9 6Z"/><path class="pause-icon" d="M6 4h3v12H6zM12 4h3v12h-3z"/></svg><span id="play-label">Play</span></button>
+          <div class="range-group"><input id="slider" type="range" min="0" max="0" value="0" disabled><div class="timeline-ticks"><span id="timeline-start">—</span><span>30-second samples</span><span id="timeline-end">—</span></div></div>
+        </div>
+        <p id="status" role="status">Loading the local catalog…</p>
+      </div>
+    </section>
+
+    <section class="readouts" aria-label="Selected position">
+      <div class="surface readout"><p class="eyebrow">Selected time <span>UTC</span></p><p class="value" id="time">—</p><p class="readout-detail" id="date">Move through a predicted orbit</p></div>
+      <div class="surface readout"><p class="eyebrow">Latitude / longitude</p><p class="value coordinate-value" id="coordinates">—</p><p class="readout-detail">Position above the Earth</p></div>
+      <div class="surface readout"><p class="eyebrow">Altitude</p><p class="value" id="altitude">—</p><p class="readout-detail">Above the WGS84 ellipsoid</p></div>
+      <div class="surface readout"><p class="eyebrow">Element age</p><p class="value" id="age">—</p><p class="readout-detail" id="age-detail">Distance from the element epoch</p></div>
+    </section>
+
+    <section id="about" class="about-grid" aria-label="About these predictions">
+      <div class="surface data-panel">
+        <div class="section-topline"><h2>The data behind the orbit</h2><a id="download" class="download-link" download="ground-track.geojson" aria-disabled="true" tabindex="-1">GeoJSON <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m-4-4 4 4 4-4M4 14v3h12v-3"/></svg></a></div>
+        <dl class="data-list"><div><dt>Source</dt><dd id="provenance">—</dd></div><div><dt>Element epoch</dt><dd id="element-epoch">—</dd></div><div><dt>Fetched</dt><dd id="fetched">—</dd></div></dl>
+        <details class="model-details"><summary>Model details & file fingerprint</summary><p id="model"></p><code id="hash"></code></details>
+      </div>
+      <div class="about-copy">
+        <p class="eyebrow">Built to explore</p><h2>A prediction, with context.</h2>
+        <p>These paths come from published orbital elements. The bundled ISS example starts in July 2020; choose its epoch to retrace that moment.</p>
+        <p class="muted">Earth rotation is approximated using GMST with UTC in place of UT1, and polar motion is omitted. This is an exploration tool, not live telemetry or a navigation service.</p>
+        <div id="warnings" aria-live="polite"></div>
+      </div>
+    </section>
+    <footer><a href="https://jiafengyu.github.io/">Made by Jayden Yu <span aria-hidden="true">↗</span></a><span>Curious about everything and anything.</span></footer>
+  </main>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -17,7 +17,7 @@ cargo build --release --locked
 ./target/release/orbit-track serve --data fixtures
 ```
 
-Open <http://127.0.0.1:8788>. The ISS fixture is historical, with an epoch in July 2020. `epoch` deliberately starts the demo at that epoch; it does not claim to show the ISS today. Select a satellite, predict a track, and move the slider between computed samples. The basemap uses original schematic continent outlines with a graticule: no CDN, tile service, or network request is needed.
+Open <http://127.0.0.1:8788>. The ISS fixture is historical, with an epoch in July 2020. `epoch` deliberately starts the demo at that epoch; it does not claim to show the ISS today. Select a satellite, predict a track, and move the slider between computed samples. The basemap uses bundled Natural Earth coastlines and a graticule: no CDN, tile service, or network request is needed. The white navigation, indigo controls, translucent cards, and night-sky background match the accompanying personal website. Play/pause steps through the existing samples (one sample per 150 ms); it stops at the end of the track or when you move the slider.
 
 For GeoJSON or optional TEME states:
 
@@ -79,6 +79,6 @@ python3 scripts/measure-http.py  # start the fixture server first
 
 `scripts/browser-check.mjs` uses Playwright to check the demo, slider, date-line split, stale warning, invalid time, second satellite, and narrow viewport. `docs/` contains captured screenshots and measurements.
 
-One Cargo package separates `core`, `frames`, `data`, `api`, and CLI modules; the numerical core does not depend on the HTTP framework. The UI is plain JavaScript served from the same binary. Pass predictions, maneuvers, collision analysis, constellation-scale queries, and live telemetry are outside this MVP.
+One Cargo package separates `core`, `frames`, `data`, `api`, and CLI modules; the numerical core does not depend on the HTTP framework. The UI is plain JavaScript served from the same binary. Map data, attribution, and optional build-time regeneration instructions are in [assets/README.md](assets/README.md). Pass predictions, maneuvers, collision analysis, constellation-scale queries, and live telemetry are outside this MVP.
 
 MIT licensed; copied orbital fixtures/reference vectors retain the upstream notice in `fixtures/SGP4-LICENSE`. This project is unaffiliated with NASA, CelesTrak, or the `sgp4` maintainers.
