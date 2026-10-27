@@ -1,0 +1,10 @@
+{
+  "platform": "Linux x86_64",
+  "cpu": "AMD EPYC 9654 96-Core Processor",
+  "warm_requests": 200,
+  "samples": 181,
+  "http_mean_ms": 0.45837125566322356,
+  "http_median_ms": 0.41028748091775924,
+  "http_p95_ms": 0.7200530089903623,
+  "scope": "release server, warm loopback HTTP, includes propagation+conversion+serialization+transport, excludes fetch and JSON decoding"
+}

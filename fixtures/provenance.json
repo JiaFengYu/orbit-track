@@ -1,0 +1,20 @@
+[
+  {
+    "file": "iss.tle",
+    "sha256": "be216a558c7d428ddacba3dfa6fc91b96afc69f1f0ea83b8d90183b8b49d8010",
+    "source": "sgp4 2.4.0/examples/tle_afspc.rs",
+    "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "vanguard.tle",
+    "sha256": "f7ea8b38ed0a1cff79129efaa15f1a18d0157d8a4a8191724b877f4ba8c381d6",
+    "source": "sgp4 2.4.0/tests/test_cases.toml (first case; name added)",
+    "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "vallado-reference.toml",
+    "sha256": "b7c05c2d9e2f965e491401c9ca1f38fe588eeec21b0f0a9e54c0f57dca0cc002",
+    "source": "sgp4 2.4.0/tests/test_cases.toml",
+    "license": "MIT; see SGP4-LICENSE"
+  }
+]
