@@ -1,4 +1,4 @@
-'use strict';
+import { api } from './api-client.js';
 
 const $ = selector => document.querySelector(selector);
 const NS = 'http://www.w3.org/2000/svg';
@@ -84,13 +84,6 @@ function togglePlayback() {
   }, 150);
 }
 
-async function get(url) {
-  const response = await fetch(url);
-  const data = await response.json();
-  if (!response.ok) throw Error(data.error?.message ?? `HTTP ${response.status}`);
-  return data;
-}
-
 async function predict(event) {
   event?.preventDefault();
   const token = ++request;
@@ -102,9 +95,8 @@ async function predict(event) {
   $('#status').textContent = 'Tracing the orbit…';
   $('#map').setAttribute('aria-busy', 'true');
   const query = new URLSearchParams({ start: $('#start').value.trim(), minutes: $('#duration').value, step_seconds: '30' });
-  const url = `/v1/satellites/${$('#satellite').value}/track?${query}`;
   try {
-    const [data, geo] = await Promise.all([get(url), get(`${url}&format=geojson`)]);
+    const { track: data, geojson: geo } = await api.predict($('#satellite').value, query);
     if (token !== request) return;
     track = data;
     $('#track').replaceChildren();
@@ -158,19 +150,30 @@ $('#play').addEventListener('click', togglePlayback);
 $('#use-epoch').addEventListener('click', () => { $('#start').value = 'epoch'; $('#start').focus(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopPlayback(); });
 
-get('/v1/satellites').then(data => {
-  for (const satellite of data.satellites) {
-    const option = document.createElement('option');
-    option.value = satellite.catalog_id;
-    option.textContent = `${satellite.name ?? 'Satellite'} (${satellite.catalog_id})`;
-    $('#satellite').append(option);
-  }
-  if (data.satellites.some(satellite => satellite.catalog_id === 25544)) $('#satellite').value = '25544';
-  return predict();
-}).catch(error => {
-  $('#error').textContent = error.message;
-  $('#error').hidden = false;
-  $('#status').textContent = 'Catalog unavailable';
-  $('#map-satellite').textContent = 'No satellite loaded';
+async function loadCatalog() {
+  $('#retry').hidden = true;
   $('#run').disabled = true;
-});
+  $('#error').hidden = true;
+  $('#status').textContent = 'Connecting to the orbit service… The first visit may take a moment.';
+  try {
+    const data = await api.catalog();
+    $('#satellite').replaceChildren();
+    for (const satellite of data.satellites) {
+      const option = document.createElement('option');
+      option.value = satellite.catalog_id;
+      option.textContent = `${satellite.name ?? 'Satellite'} (${satellite.catalog_id})`;
+      $('#satellite').append(option);
+    }
+    if (data.satellites.some(satellite => satellite.catalog_id === 25544)) $('#satellite').value = '25544';
+    await predict();
+  } catch (error) {
+    $('#error').textContent = error.message;
+    $('#error').hidden = false;
+    $('#status').textContent = 'Catalog unavailable';
+    $('#map-satellite').textContent = 'No satellite loaded';
+    $('#run').disabled = true;
+    $('#retry').hidden = false;
+  }
+}
+$('#retry').addEventListener('click', loadCatalog);
+loadCatalog();

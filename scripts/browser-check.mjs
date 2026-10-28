@@ -18,8 +18,8 @@ try {
   assert.equal(await page.locator('#satellite').inputValue(), '25544');
   assert.ok(await page.locator('#track polyline').count() >= 2, 'ISS demo should cross the date line');
   assert.equal(await page.locator('.site-nav').evaluate(nav => getComputedStyle(nav).backgroundColor), 'rgb(255, 255, 255)');
-  for (const [asset, contentType] of [['/styles.css', 'text/css'], ['/basemap.svg', 'image/svg+xml']]) {
-    const response = await page.request.get(base + asset);
+  for (const [asset, contentType] of [['./styles.css', 'text/css'], ['./basemap.svg', 'image/svg+xml']]) {
+    const response = await page.request.get(new URL(asset, base).href);
     assert.equal(response.status(), 200);
     assert.ok(response.headers()['content-type'].startsWith(contentType));
   }
@@ -47,10 +47,7 @@ try {
   assert.equal(geo.properties.satellite.catalog_id, 25544);
   assert.equal(geo.geometry.type, 'MultiLineString');
 
-  const epoch = await page.evaluate(async () => {
-    const catalog = await (await fetch('/v1/satellites')).json();
-    return catalog.satellites.find(satellite => satellite.catalog_id === 25544).epoch_utc;
-  });
+  const epoch = await page.locator('#element-epoch').getAttribute('title');
   await page.locator('#start').fill(new Date(Date.parse(epoch) + 4 * 86400000).toISOString());
   await page.locator('#run').click();
   await page.waitForFunction(() => document.querySelector('#warnings').textContent.includes('warning threshold 72 hours'));
@@ -69,7 +66,8 @@ try {
   await page.locator('#slider').fill('90');
   await page.locator('#slider').dispatchEvent('input');
   await page.locator('#slider').evaluate(slider => slider.blur());
-  await page.screenshot({ path: 'docs/explorer.png', fullPage: true });
+  const evidence = process.env.EVIDENCE_PREFIX || 'explorer';
+  await page.screenshot({ path: `docs/${evidence}.png`, fullPage: true });
   for (const width of [320, 390, 768]) {
     await page.setViewportSize({ width, height: 844 });
     await page.waitForTimeout(100);
@@ -77,7 +75,7 @@ try {
     assert.ok((await page.locator('#altitude').textContent()).includes('km'));
   }
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.screenshot({ path: 'docs/explorer-mobile.png', fullPage: true });
+  await page.screenshot({ path: `docs/${evidence}-mobile.png`, fullPage: true });
   await page.emulateMedia({ reducedMotion: 'reduce' });
   assert.equal(await page.locator('html').evaluate(html => getComputedStyle(html).scrollBehavior), 'auto');
   assert.deepEqual(errors, []);

@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: orbit-track-api
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    autoDeploy: false
+    envVars:
+      - key: ORBIT_ALLOWED_ORIGINS
+        value: https://jiafengyu.github.io

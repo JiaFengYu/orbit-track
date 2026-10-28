@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0f0c29">
   <meta name="description" content="Explore predicted satellite orbits with an interactive ground track, local orbital data, and a little curiosity about space.">
   <title>Satellite Orbit Explorer · Jayden Yu</title>
-  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main-content">Skip to explorer</a>
@@ -44,6 +44,7 @@
       </form>
       <p id="time-help" class="field-help">Use <button id="use-epoch" type="button" class="text-button">the element epoch</button> for a reproducible start, or enter a UTC time. Up to 6 hours, within 14 days of the element epoch.</p>
       <p id="error" role="alert" hidden></p>
+      <button id="retry" class="text-button" type="button" hidden>Reconnect to the explorer</button>
     </section>
 
     <section class="surface explorer" aria-labelledby="track-title">
@@ -64,7 +65,7 @@
           <rect width="1000" height="500" fill="url(#ocean)"/>
           <rect width="1000" height="500" fill="url(#map-light)"/>
           <g id="grid" aria-hidden="true"></g>
-          <image id="basemap" href="/basemap.svg" width="1000" height="500" aria-hidden="true"/>
+          <image id="basemap" href="./basemap.svg" width="1000" height="500" aria-hidden="true"/>
           <g id="map-labels" aria-hidden="true"></g>
           <g id="track-glow" aria-hidden="true"></g>
           <g id="track"></g>
@@ -106,6 +107,6 @@
     </section>
     <footer><a href="https://jiafengyu.github.io/">Made by Jayden Yu <span aria-hidden="true">↗</span></a><span>Curious about everything and anything.</span></footer>
   </main>
-  <script src="/app.js" defer></script>
+  <script src="./app.js" type="module"></script>
 </body>
 </html>

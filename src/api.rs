@@ -1,15 +1,49 @@
 use crate::{Error, core::ElementSet};
 use axum::{
     Json, Router,
-    extract::{Path, Query, State},
-    http::StatusCode,
+    extract::{Path, Query, Request, State},
+    http::{HeaderValue, Method, StatusCode},
+    middleware::{self, Next},
     response::{Html, IntoResponse, Response},
     routing::get,
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
 use std::{collections::BTreeMap, sync::Arc};
+use tokio::sync::Semaphore;
+use tower_http::cors::CorsLayer;
 pub type Catalog = Arc<BTreeMap<u64, ElementSet>>;
+
+/// Exact browser origins; CORS controls browser access, not API authentication.
+pub fn parse_origin(input: &str) -> Result<HeaderValue, String> {
+    let url = reqwest::Url::parse(input).map_err(|e| e.to_string())?;
+    if !matches!(url.scheme(), "https" | "http")
+        || url.host_str().is_none()
+        || !url.username().is_empty()
+        || url.password().is_some()
+        || url.path() != "/"
+        || url.query().is_some()
+        || url.fragment().is_some()
+    {
+        return Err("use an HTTP(S) origin without a path, credentials, query, or fragment".into());
+    }
+    HeaderValue::from_str(&url.origin().ascii_serialization()).map_err(|e| e.to_string())
+}
+
+async fn limit_predictions(
+    State(slots): State<Arc<Semaphore>>,
+    request: Request,
+    next: Next,
+) -> Response {
+    let Ok(_slot) = slots.try_acquire_owned() else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            [(axum::http::header::RETRY_AFTER, "1")],
+            Json(json!({"error":{"code":"SERVER_BUSY","message":"The explorer is busy. Please try again shortly."}})),
+        ).into_response();
+    };
+    next.run(request).await
+}
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         let status = match self.code {
@@ -55,11 +89,11 @@ async fn track(
     let Query(q) = q.map_err(|e| Error::new("INVALID_QUERY", e))?;
     if q.format
         .as_ref()
-        .is_some_and(|f| f != "json" && f != "geojson")
+        .is_some_and(|f| f != "json" && f != "geojson" && f != "explorer")
     {
         return Err(Error::new(
             "INVALID_QUERY",
-            "format must be json or geojson",
+            "format must be json, geojson, or explorer",
         ));
     }
     tokio::task::spawn_blocking(move || {
@@ -67,10 +101,10 @@ async fn track(
             Error::new("ELEMENTS_NOT_FOUND", format!("catalog ID {id} not loaded"))
         })?;
         let track = set.track(&q.start, q.minutes, q.step_seconds, q.teme)?;
-        Ok(Json(if q.format.as_deref() == Some("geojson") {
-            track.geojson()
-        } else {
-            serde_json::to_value(track).map_err(|e| Error::new("PROPAGATION_FAILED", e))?
+        Ok(Json(match q.format.as_deref() {
+            Some("geojson") => track.geojson(),
+            Some("explorer") => json!({"geojson":track.geojson(),"track":track}),
+            _ => serde_json::to_value(track).map_err(|e| Error::new("PROPAGATION_FAILED", e))?,
         }))
     })
     .await
@@ -91,6 +125,17 @@ async fn position(
     ))
 }
 pub fn router(catalog: Catalog) -> Router {
+    router_with_origins(catalog, vec![])
+}
+
+pub fn router_with_origins(catalog: Catalog, origins: Vec<HeaderValue>) -> Router {
+    let predictions = Router::new()
+        .route("/v1/satellites/{id}/track", get(track))
+        .route("/v1/satellites/{id}/position", get(position))
+        .route_layer(middleware::from_fn_with_state(
+            Arc::new(Semaphore::new(8)),
+            limit_predictions,
+        ));
     Router::new()
         .route(
             "/",
@@ -105,6 +150,33 @@ pub fn router(catalog: Catalog) -> Router {
                         "text/javascript; charset=utf-8",
                     )],
                     include_str!("../web/app.js"),
+                )
+            }),
+        )
+        .route(
+            "/api-client.js",
+            get(|| async {
+                (
+                    [(
+                        axum::http::header::CONTENT_TYPE,
+                        "text/javascript; charset=utf-8",
+                    )],
+                    include_str!("../web/api-client.js"),
+                )
+            }),
+        )
+        .route(
+            "/config.js",
+            get(|| async {
+                (
+                    [
+                        (
+                            axum::http::header::CONTENT_TYPE,
+                            "text/javascript; charset=utf-8",
+                        ),
+                        (axum::http::header::CACHE_CONTROL, "no-store"),
+                    ],
+                    include_str!("../web/config.js"),
                 )
             }),
         )
@@ -136,7 +208,12 @@ pub fn router(catalog: Catalog) -> Router {
                 Json(json!({"satellites":c.values().map(|s|s.metadata()).collect::<Vec<_>>()}))
             }),
         )
-        .route("/v1/satellites/{id}/track", get(track))
-        .route("/v1/satellites/{id}/position", get(position))
+        .merge(predictions)
         .with_state(catalog)
+        .layer(
+            CorsLayer::new()
+                .allow_origin(origins)
+                .allow_methods([Method::GET])
+                .max_age(std::time::Duration::from_secs(3600)),
+        )
 }

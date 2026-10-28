@@ -1,0 +1,15 @@
+*
+!Cargo.toml
+!Cargo.lock
+!src/
+!src/**
+!web/
+!web/**
+!fixtures/
+!fixtures/iss.tle
+!fixtures/iss.meta.json
+!fixtures/vanguard.tle
+!fixtures/vanguard.meta.json
+!fixtures/SGP4-LICENSE
+!scripts/
+!scripts/container-entrypoint.sh

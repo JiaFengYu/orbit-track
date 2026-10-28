@@ -4,6 +4,8 @@ Reproducible satellite predictions in Rust: validated TLE input → SGP4 → TEM
 
 **MVP status:** local CLI, API, browser demo, and cached provider adapter implemented. Numerical tests compare 668 reference cases (including expected failures) from the Vallado/CelesTrak verification dataset distributed with `sgp4` 2.4.0. The UI is a visualization of predictions, not live telemetry or a navigation tool.
 
+**Website hosting:** the UI can be served from GitHub Pages while all orbital computation stays in the Rust API on a separate HTTPS host. Docker and Render configuration, frontend export, and connection instructions are in [the hosting guide](docs/hosting.md). Deployment files are prepared; this does not mean a public backend has been deployed.
+
 ![Offline orbit explorer](docs/explorer.png)
 
 ## Run it
@@ -63,9 +65,9 @@ See [reference provenance and conventions](docs/numerics.md) and [measured valid
 | `/v1/satellites/25544/position?at=epoch` | One prediction with full metadata |
 | `/v1/satellites/25544/track?start=epoch&minutes=90&step_seconds=30` | Inclusive, bounded ground track |
 
-Track options: `format=json|geojson`, `teme=true|false`. Errors carry `error.code` and `error.message`; missing catalog IDs return 404. Input errors return 400. Data directories accept one two/three-line `.tle` file per numeric catalog ID, with an optional metadata sidecar. Duplicate IDs and malformed input fail startup rather than silently selecting a dataset.
+Track options: `format=json|geojson|explorer`, `teme=true|false`. The explorer format returns `{track, geojson}` from one propagation pass. Errors carry `error.code` and `error.message`; missing catalog IDs return 404. Input errors return 400. At most eight prediction requests run concurrently; excess requests receive 503 with `Retry-After`. Data directories accept one two/three-line `.tle` file per numeric catalog ID, with an optional metadata sidecar. Duplicate IDs and malformed input fail startup rather than silently selecting a dataset.
 
-The service loads files once at startup and binds only loopback addresses. For a devserver, run `ssh -N -L 8788:127.0.0.1:8788 USER@HOST` on your own computer, then use the localhost URL.
+The service loads files once at startup and defaults to a loopback listener. Non-loopback deployment requires `--allow-public`; `--allowed-origin` (or `ORBIT_ALLOWED_ORIGINS`) configures exact website origins for CORS. For a local devserver preview, run `ssh -N -L 8788:127.0.0.1:8788 USER@HOST` on your own computer, then use the localhost URL.
 
 ## Tests and benchmarks
 

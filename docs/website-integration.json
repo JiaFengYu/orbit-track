@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "checks": [
+    "production static export",
+    "project launch button",
+    "relative explorer assets",
+    "configured cross-origin Rust API",
+    "181 computed positions",
+    "no browser exceptions"
+  ]
+}

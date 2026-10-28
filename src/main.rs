@@ -49,10 +49,16 @@ enum Command {
         allow_stale: bool,
     },
     Serve {
-        #[arg(long, default_value = "fixtures")]
+        #[arg(long, env = "ORBIT_DATA_DIR", default_value = "fixtures")]
         data: PathBuf,
         #[arg(long, default_value = "127.0.0.1:8788")]
         listen: SocketAddr,
+        /// Permit a non-loopback listener for a hosted deployment.
+        #[arg(long)]
+        allow_public: bool,
+        /// Website origins allowed to read the API in a browser (comma-separated).
+        #[arg(long, env = "ORBIT_ALLOWED_ORIGINS", value_delimiter = ',', value_parser = orbit_track::api::parse_origin)]
+        allowed_origin: Vec<axum::http::HeaderValue>,
     },
 }
 fn main() -> Result<()> {
@@ -101,10 +107,15 @@ fn main() -> Result<()> {
             )?;
             println!("{}", serde_json::to_string_pretty(&report)?);
         }
-        Command::Serve { data, listen } => {
+        Command::Serve {
+            data,
+            listen,
+            allow_public,
+            allowed_origin,
+        } => {
             ensure!(
-                listen.ip().is_loopback(),
-                "MVP server is local-only; use SSH forwarding"
+                listen.ip().is_loopback() || allow_public,
+                "non-loopback listeners require --allow-public"
             );
             let catalog = Arc::new(data::catalog(&data)?);
             tokio::runtime::Builder::new_multi_thread()
@@ -114,13 +125,31 @@ fn main() -> Result<()> {
                 .block_on(async move {
                     let listener = tokio::net::TcpListener::bind(listen).await?;
                     eprintln!("Orbit explorer: http://{}", listener.local_addr()?);
-                    axum::serve(listener, orbit_track::api::router(catalog))
-                        .with_graceful_shutdown(async {
-                            let _ = tokio::signal::ctrl_c().await;
-                        })
-                        .await
+                    axum::serve(
+                        listener,
+                        orbit_track::api::router_with_origins(catalog, allowed_origin),
+                    )
+                    .with_graceful_shutdown(async {
+                        shutdown().await;
+                    })
+                    .await
                 })?;
         }
     }
     Ok(())
+}
+
+async fn shutdown() {
+    #[cfg(unix)]
+    {
+        let mut terminate =
+            tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+                .expect("install SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {},
+            _ = terminate.recv() => {},
+        }
+    }
+    #[cfg(not(unix))]
+    let _ = tokio::signal::ctrl_c().await;
 }

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Support a GitHub Pages frontend connected to a separately hosted Rust API, with one server-generated track/GeoJSON response per update.
+- Add exact-origin CORS configuration, explicit public binding, bounded concurrent predictions, connection recovery, and a Docker/Render deployment template.
+- Verify separate-origin browser operation and website static-export integration; see `docs/hosting.md` for deployment steps.
 - Match the personal website with white navigation, an indigo night-sky theme, and translucent panels.
 - Replace schematic continents with an offline Natural Earth basemap.
 - Add sampled-track playback, keyboard-accessible timeline controls, readable UTC/coordinate cards, and compact provenance details.

@@ -38,3 +38,13 @@ Updated the explorer to match the personal website: white navigation, a purple n
 Revalidation: all 10 Rust integration tests passed (including the existing 668 reference states/failures); formatting and Clippy passed. Browser checks verified keyboard slider operation, play/pause and stopping at the final sample, GeoJSON download contents, stale warnings, invalid input, satellite switching, 320/390/768px layouts, reduced-motion behavior, and successful loading of local map/CSS assets. Desktop and mobile screenshots were inspected. No JavaScript exceptions or failed resource requests occurred.
 
 The original performance measurements above remain the dated MVP measurements; the visual refresh does not change propagation or coordinate conversion.
+
+## Separate website and Rust API — 2026-10-28
+
+- All **13 integration tests** passed, including the original numerical suite and new tests for exact-origin CORS, explicit public binding, and the combined explorer response. The combined response matches the existing JSON/GeoJSON contracts. Formatting and Clippy passed; the release binary built successfully.
+- The full desktop/mobile browser suite passed against a static frontend at `/orbit-explorer/` on port 8792 and the Rust API on port 8791. Actual browser CORS was exercised; no server-side proxy or browser security override was used.
+- Additional browser checks passed for one prediction request per submission, initial connection failure and reconnect, a 503 preserving the prior map, and an unconfigured deployment without a localhost fallback. No JavaScript exceptions occurred.
+- The Next.js website production build and type checks passed in an isolated staging copy. Its static export verified **12 HTML files and 234 local links/assets**. A browser followed the project page's launch button into the exported explorer and loaded 181 computed positions from the separate Rust API. Evidence: `website-integration.json` and `hosted-explorer*.png`.
+- The static exporter rejected invalid backend origins and preserved the browser assets exactly.
+
+The Docker image could not be built locally because this account cannot access the Docker daemon. CI now includes a container build, HTTP prediction check, and shutdown, but those remote checks have not run. Render deployment, public HTTPS/CORS, service startup latency, and GitHub Pages publication remain unverified. No backend host has been created. Provider data remains the labeled historical fixtures; the original performance measurements above were not repeated.
