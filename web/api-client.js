@@ -10,10 +10,10 @@ function endpoint(path) {
   return new URL(path, base);
 }
 
-async function get(path) {
+async function get(path, options = {}) {
   let response;
   try {
-    response = await fetch(endpoint(path), { credentials: 'omit', signal: AbortSignal.timeout(90000) });
+    response = await fetch(endpoint(path), { ...options, credentials: 'omit', signal: AbortSignal.timeout(90000) });
   } catch (error) {
     if (error.name === 'TimeoutError' || error instanceof TypeError) {
       throw Error('The orbit service could not be reached. Please try again in a moment.');
@@ -31,4 +31,5 @@ async function get(path) {
 export const api = {
   catalog: () => get('/v1/satellites'),
   predict: (id, query) => get(`/v1/satellites/${encodeURIComponent(id)}/track?${query}&format=explorer`),
+  explore: request => get('/v1/explore', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(request) }),
 };

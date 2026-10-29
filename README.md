@@ -6,6 +6,10 @@ Reproducible satellite predictions in Rust: validated TLE input → SGP4 → TEM
 
 **Website hosting:** the UI can be served from GitHub Pages while all orbital computation stays in the Rust API on a separate HTTPS host. Docker and Render configuration, frontend export, and connection instructions are in [the hosting guide](docs/hosting.md). Deployment files are prepared; this does not mean a public backend has been deployed.
 
+**Interactive orbit lab:** explore six historical orbit examples or paste a custom TLE, choose a ground station on the map, inspect elevation/azimuth/range, and jump to sampled pass peaks. Change resolution, advance one orbit, and use a six-hour window. All geometry and pass analysis run in Rust; the browser renders the results.
+
+**Measured optimization:** reusing orbit samples reduced median handler-plus-JSON time by **40.7–43.3%** across three local workloads. This is a comparison of fresh and reused Rust execution paths, excluding cloud/network time. See [the benchmark and implementation guide](docs/performance.md).
+
 ![Offline orbit explorer](docs/explorer.png)
 
 ## Run it
@@ -19,7 +23,7 @@ cargo build --release --locked
 ./target/release/orbit-track serve --data fixtures
 ```
 
-Open <http://127.0.0.1:8788>. The ISS fixture is historical, with an epoch in July 2020. `epoch` deliberately starts the demo at that epoch; it does not claim to show the ISS today. Select a satellite, predict a track, and move the slider between computed samples. The basemap uses bundled Natural Earth coastlines and a graticule: no CDN, tile service, or network request is needed. The white navigation, indigo controls, translucent cards, and night-sky background match the accompanying personal website. Play/pause steps through the existing samples (one sample per 150 ms); it stops at the end of the track or when you move the slider.
+Open <http://127.0.0.1:8788>. The ISS fixture is historical, with an epoch in July 2020. `epoch` deliberately starts each example at its own epoch; it does not claim to show satellites today. The six examples cover ISS, Vanguard, polar, navigation, geostationary, and Molniya orbits. Select a satellite, predict a track, and move the slider between computed samples. Choose a ground-station preset or use **Pick on the map**, then click an elevation-chart position or a pass to jump in time. The basemap uses bundled Natural Earth coastlines and a graticule: no CDN, tile service, or network request is needed. The white navigation, indigo controls, translucent cards, and night-sky background match the personal website. Playback uses existing samples, with selectable 0.5×–4× speed.
 
 For GeoJSON or optional TEME states:
 
@@ -64,6 +68,15 @@ See [reference provenance and conventions](docs/numerics.md) and [measured valid
 | `/v1/satellites` | Loaded catalog and provenance |
 | `/v1/satellites/25544/position?at=epoch` | One prediction with full metadata |
 | `/v1/satellites/25544/track?start=epoch&minutes=90&step_seconds=30` | Inclusive, bounded ground track |
+| `POST /v1/explore` | Track, GeoJSON, orbital summary, observer look angles/passes, and Rust handler timings |
+
+Example exploration request (`Content-Type: application/json`):
+
+```json
+{"catalog_id":25544,"start":"epoch","minutes":180,"step_seconds":30,"observer":{"latitude_deg":43.4643,"longitude_deg":-80.5204,"altitude_km":0,"min_elevation_deg":10}}
+```
+
+Provide either `catalog_id` or a `tle` string, never both. Custom TLEs are neither persisted nor cached. Requests are bounded to 32 KiB; TLEs to 16 KiB. The catalog orbit cache is limited to 32 tracks and 32,768 samples. Passes use sampled positions: intervals may be clipped at the requested time limits, and short passes can fall between samples. They represent geometric clearance, not sunlight/terrain-adjusted observability.
 
 Track options: `format=json|geojson|explorer`, `teme=true|false`. The explorer format returns `{track, geojson}` from one propagation pass. Errors carry `error.code` and `error.message`; missing catalog IDs return 404. Input errors return 400. At most eight prediction requests run concurrently; excess requests receive 503 with `Retry-After`. Data directories accept one two/three-line `.tle` file per numeric catalog ID, with an optional metadata sidecar. Duplicate IDs and malformed input fail startup rather than silently selecting a dataset.
 
@@ -81,6 +94,6 @@ python3 scripts/measure-http.py  # start the fixture server first
 
 `scripts/browser-check.mjs` uses Playwright to check the demo, slider, date-line split, stale warning, invalid time, second satellite, and narrow viewport. `docs/` contains captured screenshots and measurements.
 
-One Cargo package separates `core`, `frames`, `data`, `api`, and CLI modules; the numerical core does not depend on the HTTP framework. The UI is plain JavaScript served from the same binary. Map data, attribution, and optional build-time regeneration instructions are in [assets/README.md](assets/README.md). Pass predictions, maneuvers, collision analysis, constellation-scale queries, and live telemetry are outside this MVP.
+One Cargo package separates `core`, `frames`, `observer`, `explorer`, `data`, `api`, and CLI modules. The UI is plain JavaScript served from the same binary or GitHub Pages. Map data, attribution, and optional build-time regeneration instructions are in [assets/README.md](assets/README.md). Refined rise/set events, optical visibility, maneuvers, collision analysis, constellation-scale queries, and live telemetry remain outside this project.
 
 MIT licensed; copied orbital fixtures/reference vectors retain the upstream notice in `fixtures/SGP4-LICENSE`. This project is unaffiliated with NASA, CelesTrak, or the `sgp4` maintainers.

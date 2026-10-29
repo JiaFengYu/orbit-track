@@ -1,0 +1,7 @@
+{
+  "sha256": "7f4fbf8d96d1e0a979b01b8033269547f2f0b37d151332f0cd2efcdc047b86b1",
+  "provider": "Vallado verification fixture",
+  "source_reference": "sgp4 2.4.0/tests/test_cases.toml; catalog 28129; descriptive name added",
+  "fetched_at_utc": null,
+  "cache_warning": null
+}

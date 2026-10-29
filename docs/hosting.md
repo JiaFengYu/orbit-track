@@ -1,5 +1,18 @@
 # Host the explorer on jiafengyu.github.io
 
+## Update the existing service first
+
+The configured Render address is `https://orbit-track-api.onrender.com`. The expanded UI uses `POST /v1/explore` for a track, GeoJSON, orbital summary, observer geometry, sampled passes, and performance metadata. Its JSON POST requests require the updated backend's CORS configuration; older GET endpoints remain available.
+
+1. Push the new `orbit-track` commit to `main`.
+2. In Render, open `orbit-track-api` → **Manual Deploy → Deploy latest commit**. The blueprint currently disables automatic deploys. Wait for **Live** and confirm `/v1/satellites` lists six entries.
+3. Push the website update to `JiaFengYu/JiaFengYu.github.io` on `gh-pages`. Keep its `ORBIT_API_URL` variable set to `https://orbit-track-api.onrender.com`.
+4. After the Pages workflow succeeds, verify the ground-station controls, pass chart, and Rust timing panel.
+
+Deploy the backend before the frontend: the expanded UI needs the new POST endpoint. The previous website remains compatible with the updated backend during this transition.
+
+## Architecture
+
 The browser renders the map and handles controls/playback. The Rust API owns TLE parsing, provenance checks, SGP4 propagation, coordinate conversion, request limits, warning classification, and GeoJSON generation. A single `format=explorer` request returns both the samples and GeoJSON, calculated once.
 
 ```mermaid
@@ -22,7 +35,7 @@ GitHub Pages hosts static files; the Rust process runs on a separate host. No Ru
 
 Render terminates HTTPS; the container listens on `0.0.0.0:$PORT`. The process runs as a non-root user and shuts down on SIGTERM. Automatic deploys are disabled in the blueprint: deploy a tested commit manually, or enable automatic deploys once your checks are established. If your host suspends idle services, the first visitor must wait for it to start; the UI shows connection progress, waits up to 90 seconds, and offers a reconnect button after failure.
 
-The container includes the historical ISS and Vanguard fixtures with their source metadata. These are reproducible examples, not current tracking data. To use updated elements, prepare validated `.tle`/`.meta.json` files using the existing CLI and deploy a replacement catalog via `ORBIT_DATA_DIR` and a mount or image update. The service loads the catalog on startup. No scheduled refresh is implemented.
+The container includes six historical orbit fixtures with their source metadata. These are reproducible examples, not current tracking data. To use updated elements, prepare validated `.tle`/`.meta.json` files using the existing CLI and deploy a replacement catalog via `ORBIT_DATA_DIR` and a mount or image update. The service loads the catalog on startup. No scheduled refresh is implemented.
 
 ## Connect the official website
 

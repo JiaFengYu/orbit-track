@@ -16,5 +16,29 @@
     "sha256": "b7c05c2d9e2f965e491401c9ca1f38fe588eeec21b0f0a9e54c0f57dca0cc002",
     "source": "sgp4 2.4.0/tests/test_cases.toml",
     "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "molniya.tle",
+    "sha256": "4cf457bc4750749b19019be7393ef1a7eaa7839480560f5cdf621b56b8282561",
+    "source": "sgp4 2.4.0/tests/test_cases.toml; catalog 8195; descriptive name added",
+    "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "geostationary.tle",
+    "sha256": "151c380bd3af0a63885f55d1581d64f852587e356320567f04ee16837701fe62",
+    "source": "sgp4 2.4.0/tests/test_cases.toml; catalog 25954; descriptive name added",
+    "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "polar.tle",
+    "sha256": "7b1ca9e9393f2f90572fffeb697412d1d53553d4c3e56893d2836ebd679e96e9",
+    "source": "sgp4 2.4.0/tests/test_cases.toml; catalog 28057; descriptive name added",
+    "license": "MIT; see SGP4-LICENSE"
+  },
+  {
+    "file": "navigation.tle",
+    "sha256": "7f4fbf8d96d1e0a979b01b8033269547f2f0b37d151332f0cd2efcdc047b86b1",
+    "source": "sgp4 2.4.0/tests/test_cases.toml; catalog 28129; descriptive name added",
+    "license": "MIT; see SGP4-LICENSE"
   }
 ]

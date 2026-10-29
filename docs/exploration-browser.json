@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "checks": [
+    "six catalog examples",
+    "live Rust timings",
+    "observer change reuses SGP4",
+    "overhead geometry",
+    "pass jump",
+    "interactive elevation chart",
+    "keyboard slider",
+    "map location picking",
+    "sample resolution",
+    "six-hour window",
+    "advance one orbit",
+    "custom TLE import and invalid input recovery",
+    "geostationary example",
+    "playback speed",
+    "320/390/768px layouts",
+    "no browser exceptions"
+  ]
+}

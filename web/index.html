@@ -27,7 +27,7 @@
       <div class="hero-copy">
         <p class="eyebrow">Space, systems & a little curiosity</p>
         <h1>Satellite Orbit <span>Explorer.</span></h1>
-        <p class="hero-description">A different perspective on our planet. Follow a predicted orbit and explore the path, one position at a time.</p>
+        <p class="hero-description">Pick an orbit. Choose a place on Earth. Explore when a satellite clears your horizon—with the calculations running in Rust.</p>
       </div>
       <div class="orbit-sketch" aria-hidden="true">
         <svg viewBox="0 0 180 150" fill="none"><circle cx="90" cy="75" r="32" fill="url(#planet-fill)" stroke="#a5b4fc" stroke-opacity=".5"/><ellipse cx="90" cy="75" rx="79" ry="28" transform="rotate(-32 90 75)" stroke="#c7d2fe" stroke-opacity=".65"/><ellipse cx="90" cy="75" rx="67" ry="48" transform="rotate(38 90 75)" stroke="#a5b4fc" stroke-opacity=".22" stroke-dasharray="3 5"/><path d="M60 66c20 11 38 10 58-2M65 93c15-4 34-4 51-1M86 44c-15 23-13 45 2 62" stroke="#c7d2fe" stroke-opacity=".3"/><circle cx="149" cy="34" r="5" fill="#e0e7ff"/><circle cx="149" cy="34" r="10" stroke="#a5b4fc" stroke-opacity=".35"/><defs><linearGradient id="planet-fill" x1="60" y1="43" x2="120" y2="107"><stop stop-color="#818cf8" stop-opacity=".32"/><stop offset="1" stop-color="#312e81" stop-opacity=".1"/></linearGradient></defs></svg>
@@ -35,16 +35,25 @@
     </header>
 
     <section class="surface setup" aria-labelledby="setup-title">
-      <div class="section-topline"><h2 id="setup-title">Choose your orbit</h2><span class="quiet-label">Local orbital elements <span class="status-dot" aria-hidden="true"></span></span></div>
+      <div class="section-topline"><h2 id="setup-title">Choose your orbit</h2><span id="catalog-count" class="quiet-label">Historical orbital examples</span></div>
       <form id="controls">
         <label for="satellite">Satellite<select id="satellite" required aria-label="Satellite"></select></label>
         <label for="start">Start time <span class="field-unit">UTC</span><input id="start" value="epoch" required spellcheck="false" autocomplete="off" aria-describedby="time-help"></label>
         <label for="duration">Duration <span class="field-unit">minutes</span><input id="duration" type="number" min="1" max="360" step="1" value="90" required></label>
+        <label for="resolution">Sample every<select id="resolution"><option value="10">10 seconds</option><option value="30" selected>30 seconds</option><option value="60">1 minute</option></select></label>
         <button id="run" class="action-primary" type="submit"><span>Trace orbit</span><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h12m-5-5 5 5-5 5"/></svg></button>
       </form>
       <p id="time-help" class="field-help">Use <button id="use-epoch" type="button" class="text-button">the element epoch</button> for a reproducible start, or enter a UTC time. Up to 6 hours, within 14 days of the element epoch.</p>
+      <div class="quick-actions"><button id="long-window" type="button" class="chip">Explore 6 hours</button><button id="next-orbit" type="button" class="chip" disabled>Advance one orbit →</button><span id="orbit-summary" class="quiet-label"></span></div>
+      <details class="import-panel"><summary>Bring your own satellite</summary><p>Paste a two- or three-line TLE. It is validated and calculated by the Rust service for this request, without saving it to the catalog.</p><label for="tle-input" class="sr-only">Satellite TLE</label><textarea id="tle-input" rows="4" maxlength="16384" spellcheck="false" placeholder="SATELLITE NAME&#10;1 …&#10;2 …"></textarea><button id="load-tle" type="button" class="chip">Explore this TLE</button><p id="tle-error" role="alert" hidden></p></details>
       <p id="error" role="alert" hidden></p>
       <button id="retry" class="text-button" type="button" hidden>Reconnect to the explorer</button>
+    </section>
+
+    <section class="surface observer-setup" aria-labelledby="observer-title">
+      <div class="section-topline"><div><p class="eyebrow">Your place on Earth</p><h2 id="observer-title">Where would you see it?</h2></div><button id="pick-location" type="button" class="chip" aria-pressed="false">Pick on the map</button></div>
+      <form id="station-controls"><label for="station">Ground station<select id="station"><option value="waterloo">Waterloo</option><option value="sanfrancisco">San Francisco</option><option value="london">London</option><option value="tokyo">Tokyo</option><option value="sydney">Sydney</option><option value="custom">Custom location</option></select></label><label for="station-lat">Latitude <span class="field-unit">degrees</span><input id="station-lat" type="number" min="-90" max="90" step="any" value="43.4643" required></label><label for="station-lon">Longitude <span class="field-unit">degrees</span><input id="station-lon" type="number" min="-180" max="180" step="any" value="-80.5204" required></label><label for="min-elevation">Clearance<select id="min-elevation"><option value="0">Horizon · 0°</option><option value="10" selected>10° above horizon</option><option value="30">30° above horizon</option></select></label><button class="action-primary" type="submit">Apply location</button></form>
+      <p class="field-help">Locations are at sea level. Geometric line of sight does not account for sunlight, weather, or terrain.</p>
     </section>
 
     <section class="surface explorer" aria-labelledby="track-title">
@@ -69,6 +78,7 @@
           <g id="map-labels" aria-hidden="true"></g>
           <g id="track-glow" aria-hidden="true"></g>
           <g id="track"></g>
+          <g id="station-marker" aria-hidden="true" visibility="hidden"><circle r="8" fill="#1c1834" stroke="#fbbf24" stroke-width="2"/><path d="M-4 0h8M0-4v8" stroke="#fbbf24" stroke-width="1.5"/></g>
           <circle id="marker-glow" r="13" fill="#a5b4fc" opacity=".6" filter="url(#point-glow)" visibility="hidden"/>
           <circle id="marker-ring" r="10" fill="none" stroke="#c7d2fe" stroke-width="1" opacity=".55" visibility="hidden"/>
           <circle id="marker" r="4.5" fill="#fff" stroke="#a5b4fc" stroke-width="2" visibility="hidden"/>
@@ -79,7 +89,7 @@
         <div class="timeline-heading"><label for="slider">Explore the timeline</label><span id="sample-position" class="quiet-label">Waiting for a track</span></div>
         <div class="timeline-controls">
           <button id="play" class="play-button" type="button" disabled aria-pressed="false" aria-label="Play through predicted positions"><svg viewBox="0 0 20 20" aria-hidden="true"><path class="play-icon" d="m7 4 9 6-9 6Z"/><path class="pause-icon" d="M6 4h3v12H6zM12 4h3v12h-3z"/></svg><span id="play-label">Play</span></button>
-          <div class="range-group"><input id="slider" type="range" min="0" max="0" value="0" disabled><div class="timeline-ticks"><span id="timeline-start">—</span><span>30-second samples</span><span id="timeline-end">—</span></div></div>
+          <div class="range-group"><input id="slider" type="range" min="0" max="0" value="0" disabled><div class="timeline-ticks"><span id="timeline-start">—</span><span id="step-label">30-second samples</span><span id="timeline-end">—</span></div></div><label class="speed-control" for="speed"><span class="sr-only">Playback speed</span><select id="speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
         </div>
         <p id="status" role="status">Loading the local catalog…</p>
       </div>
@@ -92,6 +102,16 @@
       <div class="surface readout"><p class="eyebrow">Element age</p><p class="value" id="age">—</p><p class="readout-detail" id="age-detail">Distance from the element epoch</p></div>
     </section>
 
+    <section class="surface observer-view" aria-labelledby="sky-title">
+      <div class="section-topline"><div><p class="eyebrow">A view from the ground</p><h2 id="sky-title">Above your horizon</h2></div><span id="visibility" class="visibility-badge">Waiting for a track</span></div>
+      <div class="sky-layout"><div><div class="look-readouts"><div><span>Elevation</span><strong id="elevation">—</strong></div><div><span>Azimuth</span><strong id="azimuth">—</strong></div><div><span>Slant range</span><strong id="range">—</strong></div></div><p class="quiet-label chart-help">Click the elevation chart to jump in time. The timeline slider also supports arrow keys.</p><svg id="elevation-chart" viewBox="0 0 800 180" role="img" aria-label="Satellite elevation over the requested time window"><path d="M0 10H800M0 90H800M0 170H800" class="chart-grid"/><path id="elevation-line" class="chart-line"/><path id="threshold-line" class="threshold-line"/><line id="chart-cursor" y1="10" y2="170" class="chart-cursor"/><text x="6" y="23">90°</text><text x="6" y="85">Horizon · 0°</text><text x="6" y="166">−90°</text></svg><div class="chart-times"><span id="chart-start">—</span><span id="chart-end">—</span></div></div><div class="sky-compass"><svg viewBox="0 0 180 180" role="img" aria-label="Sky position: north at top; circle is the horizon; center is overhead"><circle cx="90" cy="90" r="65"/><circle cx="90" cy="90" r="32.5"/><path d="M25 90H155M90 25V155"/><text x="90" y="15">N</text><text x="165" y="94">E</text><text x="90" y="173">S</text><text x="15" y="94">W</text><circle id="sky-point" cx="90" cy="90" r="5" visibility="hidden"/></svg><p id="sky-note" class="quiet-label">Center = overhead</p></div></div>
+      <div class="passes-heading"><h3>Passes in this window</h3><span id="pass-count" class="quiet-label"></span></div><div id="passes" class="pass-list"></div><p class="field-help">Pass times use sampled positions. Short passes can fall between samples; use 10-second resolution for a closer look. Select a pass to jump to its sampled peak.</p>
+    </section>
+
+    <section class="surface rust-panel" aria-labelledby="rust-title"><div class="section-topline"><div><p class="eyebrow">Inside the engine</p><h2 id="rust-title">Computed in Rust.</h2></div><a href="https://github.com/JiaFengYu/orbit-track" target="_blank" rel="noreferrer">Explore the source ↗</a></div><div class="pipeline"><span>TLE validation</span><b>→</b><span>SGP4</span><b>→</b><span>WGS84 coordinates</span><b>→</b><span>Observer geometry + GeoJSON</span></div><div class="engine-stats"><div><span>Rust handler</span><strong id="compute-ms">—</strong></div><div><span>Orbit + GeoJSON</span><strong id="orbit-ms">—</strong></div><div><span>Observer geometry</span><strong id="observer-ms">—</strong></div><div><span>Browser round trip</span><strong id="roundtrip-ms">—</strong></div></div><div class="benchmark-note"><strong>41–43% less processing time with orbit reuse</strong><p>Measured median Rust handler + JSON encoding time across 181–2,161 positions, with 400 paired requests per workload on an AMD EPYC 9654. Network and cloud startup excluded.</p><a href="https://github.com/JiaFengYu/orbit-track/blob/main/docs/performance.md" target="_blank" rel="noreferrer">Method, timings & reproducible benchmark ↗</a></div><p id="reuse-note" class="reuse-note">Change the ground station to reuse an already calculated orbit.</p><p class="field-help">Rust timings cover handler work through response assembly, excluding final JSON encoding and network transit. The browser round trip includes the request and JSON parsing. These timings describe this request, not a language comparison.</p><details><summary>Why changing location is fast</summary><p>The Axum service initializes SGP4 constants once for each catalog entry. It keeps a bounded cache of immutable orbit samples and GeoJSON, so changing the observer reuses propagation and recalculates only ground geometry. Custom TLEs bypass this cache. Tokio sends numerical work to blocking workers; concurrent predictions are bounded.</p></details></section>
+
+
+
     <section id="about" class="about-grid" aria-label="About these predictions">
       <div class="surface data-panel">
         <div class="section-topline"><h2>The data behind the orbit</h2><a id="download" class="download-link" download="ground-track.geojson" aria-disabled="true" tabindex="-1">GeoJSON <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10m-4-4 4 4 4-4M4 14v3h12v-3"/></svg></a></div>
@@ -100,7 +120,7 @@
       </div>
       <div class="about-copy">
         <p class="eyebrow">Built to explore</p><h2>A prediction, with context.</h2>
-        <p>These paths come from published orbital elements. The bundled ISS example starts in July 2020; choose its epoch to retrace that moment.</p>
+        <p>Explore six historical examples: ISS, Vanguard, polar, navigation, geostationary, and Molniya orbits. Each has its own element epoch; these paths do not represent the satellites today. You can also supply your own TLE.</p>
         <p class="muted">Earth rotation is approximated using GMST with UTC in place of UT1, and polar motion is omitted. This is an exploration tool, not live telemetry or a navigation service.</p>
         <div id="warnings" aria-live="polite"></div>
       </div>

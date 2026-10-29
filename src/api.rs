@@ -1,11 +1,15 @@
-use crate::{Error, core::ElementSet};
+use crate::{
+    Error,
+    core::ElementSet,
+    explorer::{ExploreRequest, Explorer},
+};
 use axum::{
     Json, Router,
-    extract::{Path, Query, Request, State},
-    http::{HeaderValue, Method, StatusCode},
+    extract::{DefaultBodyLimit, Path, Query, Request, State},
+    http::{HeaderValue, Method, StatusCode, header::CONTENT_TYPE},
     middleware::{self, Next},
     response::{Html, IntoResponse, Response},
-    routing::get,
+    routing::{get, post},
 };
 use serde::Deserialize;
 use serde_json::{Value, json};
@@ -49,6 +53,7 @@ impl IntoResponse for Error {
         let status = match self.code {
             "ELEMENTS_NOT_FOUND" => StatusCode::NOT_FOUND,
             "DATA_ERROR" => StatusCode::INTERNAL_SERVER_ERROR,
+            "REQUEST_BODY_TOO_LARGE" => StatusCode::PAYLOAD_TOO_LARGE,
             _ => StatusCode::BAD_REQUEST,
         };
         (status, Json(json!({"error":self}))).into_response()
@@ -128,10 +133,35 @@ pub fn router(catalog: Catalog) -> Router {
     router_with_origins(catalog, vec![])
 }
 
+async fn explore(
+    State(engine): State<Arc<Explorer>>,
+    body: Result<Json<ExploreRequest>, axum::extract::rejection::JsonRejection>,
+) -> Result<Json<Value>, Error> {
+    let Json(request) = body.map_err(|e| {
+        Error::new(
+            if e.status() == StatusCode::PAYLOAD_TOO_LARGE {
+                "REQUEST_BODY_TOO_LARGE"
+            } else {
+                "INVALID_QUERY"
+            },
+            e.body_text(),
+        )
+    })?;
+    tokio::task::spawn_blocking(move || engine.explore(request).map(Json))
+        .await
+        .map_err(|e| Error::new("DATA_ERROR", e))?
+}
+
 pub fn router_with_origins(catalog: Catalog, origins: Vec<HeaderValue>) -> Router {
+    let interactive = Router::new()
+        .route("/v1/explore", post(explore))
+        .layer(DefaultBodyLimit::max(32 * 1024))
+        .with_state(Arc::new(Explorer::new(Arc::clone(&catalog))));
     let predictions = Router::new()
         .route("/v1/satellites/{id}/track", get(track))
         .route("/v1/satellites/{id}/position", get(position))
+        .with_state(Arc::clone(&catalog))
+        .merge(interactive)
         .route_layer(middleware::from_fn_with_state(
             Arc::new(Semaphore::new(8)),
             limit_predictions,
@@ -208,12 +238,13 @@ pub fn router_with_origins(catalog: Catalog, origins: Vec<HeaderValue>) -> Route
                 Json(json!({"satellites":c.values().map(|s|s.metadata()).collect::<Vec<_>>()}))
             }),
         )
-        .merge(predictions)
         .with_state(catalog)
+        .merge(predictions)
         .layer(
             CorsLayer::new()
                 .allow_origin(origins)
-                .allow_methods([Method::GET])
+                .allow_methods([Method::GET, Method::POST])
+                .allow_headers([CONTENT_TYPE])
                 .max_age(std::time::Duration::from_secs(3600)),
         )
 }

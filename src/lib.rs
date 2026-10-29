@@ -1,7 +1,9 @@
 pub mod api;
 pub mod core;
 pub mod data;
+pub mod explorer;
 pub mod frames;
+pub mod observer;
 use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct Error {

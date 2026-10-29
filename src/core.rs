@@ -120,7 +120,10 @@ impl ElementSet {
         self.elements.datetime.and_utc()
     }
     pub fn metadata(&self) -> Value {
-        json!({"catalog_id":self.elements.norad_id,"name":self.elements.object_name,"epoch_utc":self.epoch(),"provenance":self.provenance})
+        json!({"catalog_id":self.elements.norad_id,"name":self.elements.object_name,"epoch_utc":self.epoch(),"provenance":self.provenance,"orbit":self.orbit_summary()})
+    }
+    pub fn orbit_summary(&self) -> Value {
+        json!({"period_minutes":1440.0/self.elements.mean_motion,"inclination_deg":self.elements.inclination,"eccentricity":self.elements.eccentricity})
     }
     pub fn time(&self, input: &str) -> Result<DateTime<Utc>> {
         if input == "epoch" {

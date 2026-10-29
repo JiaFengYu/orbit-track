@@ -22,4 +22,6 @@ jobs:
           curl --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:10000/healthz
           curl --fail 'http://127.0.0.1:10000/v1/satellites/25544/track?start=epoch&format=explorer' > /tmp/prediction.json
           python3 -c 'import json; p=json.load(open("/tmp/prediction.json")); assert len(p["track"]["samples"]) == 181; assert p["geojson"]["geometry"]["type"] == "MultiLineString"'
+          curl --fail -H 'Content-Type: application/json' -d '{"catalog_id":25544,"start":"epoch","minutes":90,"step_seconds":30,"observer":{"latitude_deg":43.4643,"longitude_deg":-80.5204}}' http://127.0.0.1:10000/v1/explore > /tmp/exploration.json
+          python3 -c 'import json; p=json.load(open("/tmp/exploration.json")); assert len(p["observation"]["look_angles"]) == 181; assert p["performance"]["language"] == "Rust"'
           docker stop --time 10 orbit-api

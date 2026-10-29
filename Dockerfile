@@ -10,7 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY --from=build /build/target/release/orbit-track /usr/local/bin/orbit-track
-COPY fixtures/iss.tle fixtures/iss.meta.json fixtures/vanguard.tle fixtures/vanguard.meta.json fixtures/SGP4-LICENSE ./fixtures/
+COPY fixtures/*.tle fixtures/*.meta.json fixtures/SGP4-LICENSE ./fixtures/
 COPY scripts/container-entrypoint.sh /usr/local/bin/container-entrypoint
 RUN chmod 755 /usr/local/bin/container-entrypoint
 USER 10001:10001

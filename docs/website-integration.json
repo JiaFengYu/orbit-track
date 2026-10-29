@@ -1,11 +1,13 @@
 {
   "passed": true,
   "checks": [
-    "production static export",
-    "project launch button",
-    "relative explorer assets",
-    "configured cross-origin Rust API",
-    "181 computed positions",
+    "production website export",
+    "Rust performance description",
+    "new screenshot dimensions",
+    "project launch link",
+    "six-example static explorer",
+    "cross-origin POST and CORS",
+    "ground-station cache reuse",
     "no browser exceptions"
   ]
 }

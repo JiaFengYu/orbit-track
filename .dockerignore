@@ -10,6 +10,8 @@
 !fixtures/iss.meta.json
 !fixtures/vanguard.tle
 !fixtures/vanguard.meta.json
+!fixtures/*.tle
+!fixtures/*.meta.json
 !fixtures/SGP4-LICENSE
 !scripts/
 !scripts/container-entrypoint.sh

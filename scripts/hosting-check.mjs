@@ -16,7 +16,7 @@ try {
   await page.waitForFunction(() => document.querySelector('#status').textContent.includes('181 positions'));
   assert.equal(apiRequests.length, 2, 'one catalog request and one combined prediction');
   assert.ok(apiRequests.every(url => new URL(url).origin === new URL(api).origin));
-  assert.ok(apiRequests[1].includes('format=explorer'));
+  assert.equal(new URL(apiRequests[1]).pathname, '/v1/explore');
   const before = apiRequests.length;
   await page.locator('#duration').fill('30');
   await page.locator('#run').click();

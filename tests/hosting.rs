@@ -93,7 +93,7 @@ async fn only_configured_browser_origins_receive_cors_headers_including_errors()
         .unwrap();
     assert_eq!(
         preflight.headers()[header::ACCESS_CONTROL_ALLOW_METHODS],
-        "GET"
+        "GET,POST"
     );
     assert_eq!(
         preflight.headers()[header::ACCESS_CONTROL_ALLOW_ORIGIN],
